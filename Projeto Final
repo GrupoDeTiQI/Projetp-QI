@@ -1,0 +1,162 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PANINO STANTIO</title>
+    <style>
+         @media screen and (max-width: 480px) {
+ .text {
+ font-size: 36px;
+ }
+}
+
+        body {
+            background-color: beige;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background-color: yellow;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            margin: 50px auto;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .cart-header {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: black;
+        }
+
+        .cart-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+            color: black;
+        }
+
+        .cart-total {
+            margin-top: 20px;
+            text-align: right;
+            font-weight: bold;
+            color: black;
+        }
+
+        .add-button, .remove-button {
+            background-color: yellow;
+            color: black;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cart-header">
+            Meu Carrinho de Compras
+        </div>
+        <form method="post">
+            <%-- Itens com botões de adicionar/remover --%>
+            <%@ page import="java.text.DecimalFormat" %>
+            <%
+                String[] itemNames = {"croissant", "bolo_pote", "pastel", "vinho", "bolo", "queijo", "pao"};
+                double[] itemPrices = {3.50, 4.50, 2.00, 20.00, 3.00, 5.00, 1.50};
+                double discountPerItem = 0.0; // Desconto por item removido
+
+                DecimalFormat df = new DecimalFormat("#.00"); // Formatação para exibir os valores
+
+                if (session.getAttribute("totalAmount") == null) {
+                    session.setAttribute("totalAmount", 0.00);
+                }
+
+                if (request.getParameter("add") != null) {
+                    String selectedItem = request.getParameter("add");
+                    int itemIndex = java.util.Arrays.asList(itemNames).indexOf(selectedItem);
+                    double currentTotal = (Double) session.getAttribute("totalAmount");
+                    currentTotal += itemPrices[itemIndex];
+                    session.setAttribute("totalAmount", currentTotal);
+                }
+
+                if (request.getParameter("remove") != null) {
+                    String selectedItem = request.getParameter("remove");
+                    int itemIndex = java.util.Arrays.asList(itemNames).indexOf(selectedItem);
+                    double currentTotal = (Double) session.getAttribute("totalAmount");
+                    currentTotal -= itemPrices[itemIndex];
+
+                    if (currentTotal < 0) {
+                        currentTotal = 0;
+                    }
+
+                    // Aplicar desconto ao remover um item
+                    currentTotal -= discountPerItem;
+
+                    session.setAttribute("totalAmount", currentTotal);
+                }
+            %>
+            <%
+                double totalAmount = (Double) session.getAttribute("totalAmount");
+            %>
+            <%-- Listar os itens e seus botões de ação --%>
+            <%
+                for (int i = 0; i < itemNames.length; i++) {
+                    out.println("<div class='cart-item'>");
+                    out.println(itemNames[i].replace("_", " ") + " - $" + df.format(itemPrices[i]));
+                    out.println("<button class='add-button' type='submit' name='add' value='" + itemNames[i] + "'>Adicionar</button>");
+                    out.println("<button class='remove-button' type='submit' name='remove' value='" + itemNames[i] + "'>Remover</button>");
+                    out.println("</div>");
+                }
+            %>
+            
+            <%-- Opções de pagamento e envio --%>
+            <div class="payment-options">
+                <label>Escolha o método de pagamento:</label><br>
+                <input type="radio" name="paymentMethod" value="cash"> Dinheiro<br>
+                <input type="radio" name="paymentMethod" value="card"> Cartão<br>
+                <input type="radio" name="paymentMethod" value="voucher"> Voucher<br>
+                <input type="radio" name="paymentMethod" value="pix"> PIX<br>
+            </div>
+            
+            <div class="shipping-options">
+                <label>Escolha a data de envio:</label><br>
+                <input type="date" name="shippingDate"><br>
+            </div>
+
+            <button class="submit-button" type="submit" name="submit">Finalizar Compra</button>
+        </form>
+        
+        <div class="cart-total">
+            Total: $<%= df.format(totalAmount) %>
+        </div>
+
+        <%
+            if (request.getParameter("submit") != null) {
+                String paymentMethod = request.getParameter("paymentMethod");
+                String shippingDate = request.getParameter("shippingDate");
+                
+                double additionalCharge = 0.00;
+                if (paymentMethod.equals("card")) {
+                    additionalCharge = 1.50;
+                } else if (paymentMethod.equals("pix")) {
+                    additionalCharge = 0.75;
+                }
+                
+                double totalAmountWithCharge = totalAmount + additionalCharge;
+                
+                session.setAttribute("totalAmount", totalAmountWithCharge);
+        %>
+                <div class="thank-you-message">
+                    Obrigado por sua compra! Seu pedido será enviado em <%= shippingDate %>. Agradecemos a preferência!
+                </div>
+        <%  
+            }
+        %>
+    </div>
+</body>
+</html>
